@@ -1,0 +1,109 @@
+I noticed this bounced back for Shawn.  Hopefully i have the correct email address now..  I also noticed that the property list I included for the flight class has typos and is missing at least one property.  i'll leave it to you to find and correct that.
+
+This is written assuming you have you have a simple project with the store configured as a starting point.  If not please find and follow a tutorial on how to do that before proceeding.
+
+1)  Create a data model class for the flight.  The flight class should have the following properties:
+    departure: string,  //departure city
+    arrival: string,  //arrival city
+    flightDate: date  //departure date time
+    seasAvailable:  number // # seats available for purchase on the flight
+    airCraft:  string // type of plane
+    price:  number //price of the flight
+    stops:  number of stops on the flight
+
+2)  Create the root store model for your app that to be the following  { flights: Array<FlightModel> } (or whatever you called your flight model class).
+
+3)  Create an action that will be used to set the flight list.  The payload of the action will be an array of flights (use the same data model class as you created in step 1)
+
+4)  Update your root reducer to handle the action from step 1
+        set the flight array in the root store model to the payload you passed in the action.
+
+5)  Create a smart component
+        copy the attached code into that file
+        In the onInit of that component invoke the createFilights method and dispatch the returned value to the store using the action you created in step #2.
+
+6)  Create a selector that will pull the flights value from the root store model and filter it to a specific departure and arrival city.
+
+7)  Create a display component that accepts a flight array (use the data model from step 1) as an input
+
+8)  Create a display component that will accept two parameters monthName: string and flights: Array<FlightModel>.
+        it will display a months worth of flights as a calendar page (month name at top, a row of day names and below that a number of rows for each week)
+
+        Create a seperate component to handle the display of the day.
+            You should be able to *ngFor the display of the days not hard code them.  Each day will either display a list of flights for that day if one ore more exist or the message "No Flights".   Each flight should be displayed as "Flight # - Departure Time (just HH:MM AM/PM).
+
+9)  In the container create your observable using the selector from step #5 and pass it into the main display component.
+
+10)  The final result should show all twelve months of flight details (assuming you created 52 weeks of data in step #4).
+
+11) Get this styled using bootstrap (ngxBootstrap would be best) so that it has a bit of curb appeal.
+
+Make sure you have redux developer tool installed so you can debug your store actions.
+
+If you're able to do the above please try to add two drop downs on  the calendar page where the user can select departure and arrival cities with a button that when clicked will update the display to show the flights that match. These values would need to be posted to the store when the user clicks the search button.  You'll need to place those city names into your store and use them to filter the list returned from your selector you created in step #6.
+
+Thanks,
+Kip
+
+This point on down is the code you need to copy into your smart component
+
+const flightTypes = [
+    () => [ 0, 1, 2, 3, 4, 5, 6 ] ,
+    () => [ 1, 3, 5],
+    () => [ getRandom(7) ]
+];
+
+const amPm = [ "AM", "PM" ];
+const startDate = new Date(2020, 0, 6);
+const aircrafts = [ "Airbus 123", "Boeing 737", "Boeing 747", "DC 10" ];
+
+function addDays(days) {
+    const d = new Date();
+    d.setDate(startDate.getDate() + days);
+    return d;
+}
+
+function getRandom(max, rounding) {
+    round = rounding || Math.floor;
+    return round(Math.random() * max);
+}
+
+function assignTimes(flight, num) {
+    if (num === 0) return [];
+    const d  = flight.flightDate;
+    const [ year, month, day] = [ 1900 + d.getYear(), d.getMonth(), d.getDate()];
+    return [ { ... flight, flightNumber: 100 + getRandom(200), flightDate: new Date( year, month, day, getRandom(24, Math.ceil) )}, ...assignTimes(flight, num - 1) ];
+}
+
+function createFlights(flight) {
+    let flights = [];
+    const sched = flightTypes[getRandom(flightTypes.length)]();
+    for (var week=0;week<52;++week) {
+        sched.forEach(x => {
+            flights = [ ...flights, {
+                ...flight,
+                flightDate: addDays(week * 7 + x),
+                seatAvailable: getRandom(20),
+                aircraft: aircrafts[getRandom(aircrafts.length)],
+                price: 100 + getRandom(200),
+                stops: getRandom(3),
+            }];
+        })
+    }
+    return flights.reduce((acc, flight) => [ ...acc, ...assignTimes(flight, getRandom(3, Math.ceil)) ], []);
+}
+
+
+function getFlights(cities) {
+    let ads = cities.map(x => cities.filter(y => y !== x).map( y => ({ departure: x, arrival: y }))).flat();
+    return ads.reduce((acc, ad) => [ ...acc, createFlights(ad)], []);
+}
+
+Array.prototype.flat = function() {
+    return this.reduce((acc, arr) => [ ...acc, ...arr], []);
+}
+
+const cities = [ "St. Louis", "Chicago", "New York", "Los Angeles", "Miami" ];
+
+//copy this above code into your smart container.  In the ngOnInit of that component you need to call getFlights passing it the cities list.  The return value
+//from that call needs to be dispatched to your store.
